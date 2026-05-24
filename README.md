@@ -187,4 +187,4 @@ For deploying the application to production:
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the LICENSE file for details (if applicable).
+<!-- This project is licensed under the MIT License. See the LICENSE file for details (if applicable). -->
