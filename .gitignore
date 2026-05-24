@@ -1,0 +1,5 @@
+db.sqlite3
+venv/
+dump/
+__pycache__
+.env

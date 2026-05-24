@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+{% load static tailwind_tags %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-5xl mx-auto mt-6">
+    <h2 class="text-3xl font-bold text-gray-800 border-b-2 border-gray-100 pb-4 mb-6">MIRA Primer Analyzer</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div class="flex flex-col">
+            <label for="fpInput" class="font-semibold text-gray-700 mb-2">Forward Primer (5' &rarr; 3')</label>
+            <input type="text" id="fpInput" value="AGAAAGTTACCACAGTTATGCACAGAGCTG" class="p-3 font-mono font-bold border-2 border-gray-300 rounded-lg uppercase focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+        <div class="flex flex-col">
+            <label for="rpInput" class="font-semibold text-gray-700 mb-2">Reverse Primer (5' &rarr; 3')</label>
+            <input type="text" id="rpInput" value="TTATCACATACAGCATATGGATTCCCATCTC" class="p-3 font-mono font-bold border-2 border-gray-300 rounded-lg uppercase focus:outline-none focus:border-blue-500 transition-colors">
+        </div>
+    </div>
+
+    <!-- Stats from Python API -->
+    <div class="bg-blue-50 p-6 rounded-lg mb-8 grid grid-cols-1 md:grid-cols-2 gap-6 border border-blue-100">
+        <div>
+            <h3 class="font-bold text-blue-800 mb-2 text-lg">Forward Primer Stats</h3>
+            <ul class="text-gray-700 space-y-1">
+                <li>Length: <span id="fpLength" class="font-semibold">-</span> bp</li>
+                <li>GC Content: <span id="fpGC" class="font-semibold">-</span>%</li>
+                <li>Melting Temp (Tm): <span id="fpTm" class="font-semibold">-</span> &deg;C</li>
+                <li>Self Annealing (dG): <span id="fpSelf" class="font-semibold">-</span> kcal/mol</li>
+            </ul>
+        </div>
+        <div>
+            <h3 class="font-bold text-blue-800 mb-2 text-lg">Reverse Primer Stats</h3>
+            <ul class="text-gray-700 space-y-1">
+                <li>Length: <span id="rpLength" class="font-semibold">-</span> bp</li>
+                <li>GC Content: <span id="rpGC" class="font-semibold">-</span>%</li>
+                <li>Melting Temp (Tm): <span id="rpTm" class="font-semibold">-</span> &deg;C</li>
+                <li>Self Annealing (dG): <span id="rpSelf" class="font-semibold">-</span> kcal/mol</li>
+            </ul>
+        </div>
+        <div class="md:col-span-2 text-center border-t border-blue-200 pt-4 flex flex-col items-center">
+            <div>
+                <span class="text-gray-700">Cross Annealing (dG): </span>
+                <span id="crossAnneal" class="font-bold text-blue-800">-</span> <span class="text-gray-700">kcal/mol</span>
+            </div>
+            <div id="overallExtensionStatus" class="mt-4 text-center"></div>
+        </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="flex items-center gap-4 mb-8 w-full">
+        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors whitespace-nowrap" id="prevBtn">&larr; Prev</button>
+        <div class="flex-grow flex items-center">
+            <input type="range" id="shiftSlider" min="-30" max="30" value="0" class="w-full h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer">
+        </div>
+        <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors whitespace-nowrap" id="nextBtn">Next &rarr;</button>
+    </div>
+
+    <!-- Grid Visualization -->
+    <div class="w-full overflow-x-auto bg-gray-800 rounded-lg mb-6 p-4">
+        <div class="grid justify-start items-center gap-y-1 font-mono text-xl font-bold p-4" id="visualizationGrid"></div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-100 p-4 rounded-lg text-sm mb-4">
+        <div><strong class="text-gray-700">Total Overlapping Footprint:</strong> <span id="overlapCount" class="text-gray-900 font-bold">0</span> bp</div>
+        <div><strong class="text-gray-700">Watson-Crick Hydrogen Bonds (|):</strong> <span id="matchCount" class="text-gray-900 font-bold">0</span> pairs</div>
+        <div id="statusBox" class="md:col-span-2 p-3 rounded text-center font-bold text-base mt-2"></div>
+    </div>
+</div>
+
+<script>
+    const fpInput = document.getElementById('fpInput');
+    const rpInput = document.getElementById('rpInput');
+    const slider = document.getElementById('shiftSlider');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const gridContainer = document.getElementById('visualizationGrid');
+    const overlapCount = document.getElementById('overlapCount');
+    const matchCount = document.getElementById('matchCount');
+    const statusBox = document.getElementById('statusBox');
+
+    function getCleanSequence(inputEl) {
+        return inputEl.value.toUpperCase().replace(/[^ATCG]/g, '');
+    }
+
+    function calculateSliderBounds() {
+        const fpLen = getCleanSequence(fpInput).length;
+        const rpLen = getCleanSequence(rpInput).length;
+        slider.min = -rpLen;
+        slider.max = fpLen;
+    }
+
+    function isWatsonCrickMatch(b1, b2) {
+        return (b1 === 'A' && b2 === 'T') || 
+               (b1 === 'T' && b2 === 'A') || 
+               (b1 === 'C' && b2 === 'G') || 
+               (b1 === 'G' && b2 === 'C');
+    }
+
+    function updateAlignment() {
+        const fp = getCleanSequence(fpInput);
+        const rpRaw = getCleanSequence(rpInput);
+
+        if (!fp || !rpRaw) {
+            gridContainer.innerHTML = "<span class='text-red-500 p-4'>Error: Missing Sequence Tracks.</span>";
+            return;
+        }
+
+        const rp_3to5_visual = rpRaw.split('').reverse().join('');
+        const shift = parseInt(slider.value);
+        
+        const minIndex = Math.min(0, shift);
+        const maxIndex = Math.max(fp.length, rp_3to5_visual.length + shift);
+        const totalColumns = maxIndex - minIndex;
+
+        gridContainer.style.gridTemplateColumns = `max-content repeat(${totalColumns}, 24px)`;
+
+        let currentMatches = 0;
+        let currentOverlaps = 0;
+        let dangerousFP3Prime = false;
+        let dangerousRP3Prime = false;
+
+        const fpCells = [];
+        const matchCells = [];
+        const rpCells = [];
+
+        for (let i = minIndex; i < maxIndex; i++) {
+            let fpChar = "";
+            let isFP3PrimeEnd = (i === fp.length - 1);
+            if (i >= 0 && i < fp.length) {
+                fpChar = fp[i];
+            }
+
+            let rpChar = "";
+            const rpVisualIndex = i - shift;
+            let isRP3PrimeEnd = (rpVisualIndex === 0);
+            
+            if (rpVisualIndex >= 0 && rpVisualIndex < rp_3to5_visual.length) {
+                rpChar = rp_3to5_visual[rpVisualIndex];
+            }
+
+            let bondSymbol = "";
+
+            if (fpChar && rpChar) {
+                currentOverlaps++;
+                if (isWatsonCrickMatch(fpChar, rpChar)) {
+                    bondSymbol = "|";
+                    currentMatches++;
+                    if (isFP3PrimeEnd) dangerousFP3Prime = true;
+                    if (isRP3PrimeEnd) dangerousRP3Prime = true;
+                }
+            }
+
+            fpCells.push({ char: fpChar || " ", is3Prime: isFP3PrimeEnd, activeDanger: false });
+            matchCells.push({ char: bondSymbol || " " });
+            rpCells.push({ char: rpChar || " ", is3Prime: isRP3PrimeEnd, activeDanger: false });
+        }
+
+        if (dangerousFP3Prime) {
+            let targetIdx = fpCells.findIndex(c => c.is3Prime === true);
+            if(targetIdx !== -1) fpCells[targetIdx].activeDanger = true;
+        }
+        if (dangerousRP3Prime) {
+            let targetIdx = rpCells.findIndex(c => c.is3Prime === true);
+            if(targetIdx !== -1) rpCells[targetIdx].activeDanger = true;
+        }
+
+        let gridHTML = `<div class="text-sm text-gray-400 pr-4 whitespace-nowrap select-none">FP (5'-3')</div>`;
+        fpCells.forEach(cell => {
+            const dangerClass = cell.activeDanger ? "bg-red-500/40 rounded text-white" : "text-green-400";
+            gridHTML += `<div class="w-6 h-7 flex items-center justify-center text-center ${dangerClass}">${cell.char}</div>`;
+        });
+
+        gridHTML += `<div class="text-sm text-gray-400 pr-4 whitespace-nowrap select-none"></div>`;
+        matchCells.forEach(cell => {
+            gridHTML += `<div class="w-6 h-7 flex items-center justify-center text-center text-yellow-400 text-lg">${cell.char}</div>`;
+        });
+
+        gridHTML += `<div class="text-sm text-gray-400 pr-4 whitespace-nowrap select-none">RP (3'-5')</div>`;
+        rpCells.forEach(cell => {
+            const dangerClass = cell.activeDanger ? "bg-red-500/40 rounded text-white" : "text-red-400";
+            gridHTML += `<div class="w-6 h-7 flex items-center justify-center text-center ${dangerClass}">${cell.char}</div>`;
+        });
+
+        gridContainer.innerHTML = gridHTML;
+
+        overlapCount.innerText = currentOverlaps;
+        matchCount.innerText = currentMatches;
+
+        if (dangerousFP3Prime && dangerousRP3Prime) {
+            statusBox.className = "md:col-span-2 p-3 rounded text-center font-bold text-base mt-2 bg-red-200 text-red-800 border-l-4 border-red-600";
+            statusBox.innerText = "CRITICAL: Mutual 3' Extension! Both primers can extend each other simultaneously. Severe false-positives guaranteed.";
+        } else if (dangerousFP3Prime) {
+            statusBox.className = "md:col-span-2 p-3 rounded text-center font-bold text-base mt-2 bg-red-200 text-red-800 border-l-4 border-red-600";
+            statusBox.innerText = "WARNING: Forward Primer 3' Extension site active. Isothermal polymerase will initiate dimer elongation.";
+        } else if (dangerousRP3Prime) {
+            statusBox.className = "md:col-span-2 p-3 rounded text-center font-bold text-base mt-2 bg-red-200 text-red-800 border-l-4 border-red-600";
+            statusBox.innerText = "WARNING: Reverse Primer 3' Extension site active. Isothermal polymerase will initiate dimer elongation.";
+        } else {
+            statusBox.className = "md:col-span-2 p-3 rounded text-center font-bold text-base mt-2 bg-green-200 text-green-800 border-l-4 border-green-600";
+            statusBox.innerText = "Safe alignment: No active 3' terminal extension pairing found at this overlap coordinate.";
+        }
+    }
+
+    let debounceTimer;
+    function fetchAnalysis() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const fp = getCleanSequence(fpInput);
+            const rp = getCleanSequence(rpInput);
+
+            fetch('/api/analyze/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({fp: fp, rp: rp})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.fp_stats) {
+                    document.getElementById('fpLength').innerText = data.fp_stats.length;
+                    document.getElementById('fpGC').innerText = data.fp_stats.gc.toFixed(1);
+                    document.getElementById('fpTm').innerText = data.fp_stats.tm.toFixed(2);
+                    document.getElementById('fpSelf').innerText = data.fp_stats.hairpin_dg.toFixed(2);
+                }
+                if(data.rp_stats) {
+                    document.getElementById('rpLength').innerText = data.rp_stats.length;
+                    document.getElementById('rpGC').innerText = data.rp_stats.gc.toFixed(1);
+                    document.getElementById('rpTm').innerText = data.rp_stats.tm.toFixed(2);
+                    document.getElementById('rpSelf').innerText = data.rp_stats.hairpin_dg.toFixed(2);
+                }
+                if(data.fp_rp_dg !== undefined) {
+                    document.getElementById('crossAnneal').innerText = data.fp_rp_dg.toFixed(2);
+                }
+            })
+            .catch(err => console.error("Error fetching analysis:", err));
+        }, 500); // 500ms debounce
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Button Click Functionality
+    prevBtn.addEventListener('click', () => {
+        let val = parseInt(slider.value);
+        if (val > parseInt(slider.min)) {
+            slider.value = val - 1;
+            updateAlignment();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        let val = parseInt(slider.value);
+        if (val < parseInt(slider.max)) {
+            slider.value = val + 1;
+            updateAlignment();
+        }
+    });
+
+    function checkOverallMutualExtension() {
+        const fp = getCleanSequence(fpInput);
+        const rpRaw = getCleanSequence(rpInput);
+        const rp_3to5_visual = rpRaw.split('').reverse().join('');
+        
+        let hasMutualExtension = false;
+        const minShift = -rpRaw.length;
+        const maxShift = fp.length;
+
+        for (let shift = minShift; shift <= maxShift; shift++) {
+            let dangerousFP3Prime = false;
+            let dangerousRP3Prime = false;
+
+            const minIndex = Math.min(0, shift);
+            const maxIndex = Math.max(fp.length, rp_3to5_visual.length + shift);
+
+            for (let i = minIndex; i < maxIndex; i++) {
+                let fpChar = (i >= 0 && i < fp.length) ? fp[i] : "";
+                let isFP3PrimeEnd = (i === fp.length - 1);
+
+                let rpVisualIndex = i - shift;
+                let rpChar = (rpVisualIndex >= 0 && rpVisualIndex < rp_3to5_visual.length) ? rp_3to5_visual[rpVisualIndex] : "";
+                let isRP3PrimeEnd = (rpVisualIndex === 0);
+
+                if (fpChar && rpChar && isWatsonCrickMatch(fpChar, rpChar)) {
+                    if (isFP3PrimeEnd) dangerousFP3Prime = true;
+                    if (isRP3PrimeEnd) dangerousRP3Prime = true;
+                }
+            }
+            if (dangerousFP3Prime && dangerousRP3Prime) {
+                hasMutualExtension = true;
+                break;
+            }
+        }
+
+        const overallStatusEl = document.getElementById('overallExtensionStatus');
+        if (hasMutualExtension) {
+            overallStatusEl.className = "mt-2 text-red-700 font-bold bg-red-100 px-4 py-2 rounded-md border border-red-200 inline-block";
+            overallStatusEl.innerText = "⚠️ Mutual 3' Extension Possible (check alignments)";
+        } else {
+            overallStatusEl.className = "mt-2 text-green-700 font-bold bg-green-100 px-4 py-2 rounded-md border border-green-200 inline-block";
+            overallStatusEl.innerText = "✅ No Mutual 3' Extension Risk";
+        }
+    }
+
+    [fpInput, rpInput].forEach(element => {
+        element.addEventListener('input', () => {
+            calculateSliderBounds();
+            updateAlignment();
+            fetchAnalysis();
+            checkOverallMutualExtension();
+        });
+    });
+
+    slider.addEventListener('input', updateAlignment);
+
+    window.addEventListener('DOMContentLoaded', () => {
+        calculateSliderBounds();
+        updateAlignment();
+        fetchAnalysis();
+        checkOverallMutualExtension();
+    });
+</script>
+{% endblock content %}
