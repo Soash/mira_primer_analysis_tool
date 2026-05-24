@@ -35,7 +35,7 @@ if ENVIRONMENT == 'development':
     ALLOWED_HOSTS = ['*']
 else:
     DEBUG = False
-    ALLOWED_HOSTS = ['soash.dev', '*.soash.dev']
+    ALLOWED_HOSTS = ['soash.dev', '*.soash.dev', 'mira.soash.dev']
 
 
 
