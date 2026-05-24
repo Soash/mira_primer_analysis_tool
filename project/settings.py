@@ -156,3 +156,94 @@ if not DEBUG:
 else:
     CSRF_TRUSTED_ORIGINS = ["https://choice-alien-saved.ngrok-free.app", 'https://soash.dev', 'https://*.soash.dev']
 
+
+import os
+
+DISABLE_LOGGING = os.environ.get('DISABLE_LOGGING', 'False') == 'True'
+
+if DISABLE_LOGGING:
+    # Completely disable Django's default logging configuration
+    LOGGING_CONFIG = None
+else:
+    LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {module}:{lineno} — {message}',
+            'style': '{',
+            'datefmt': '%Y-%m-%d %H:%M:%S',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'django_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'maxBytes': 1024 * 1024 * 5,   # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'errors.log',
+            'maxBytes': 1024 * 1024 * 5,   # 5 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+    },
+
+    'loggers': {
+        # Root Django logger
+        'django': {
+            'handlers': ['console', 'django_file', 'error_file'],
+            'level': 'DEBUG' if DEBUG else 'WARNING',
+            'propagate': False,
+        },
+        # DB query logger — only active in development
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'ERROR',
+            'propagate': False,
+        },
+        # Request/security logger
+        'django.request': {
+            'handlers': ['error_file', 'console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        # App-level logger (use logging.getLogger('core') etc. in views)
+        'core': {
+            'handlers': ['console', 'django_file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'service': {
+            'handlers': ['console', 'django_file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+        'users': {
+            'handlers': ['console', 'django_file'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
+        },
+    }
+    }
+
+    
+    os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
+
+
+
