@@ -137,3 +137,20 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 NPM_BIN_PATH = r"npm.cmd"
+
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+
+    CSRF_TRUSTED_ORIGINS = ['https://choice-alien-saved.ngrok-free.app', 'soash.dev', '*.soash.dev']
+else:
+    CSRF_TRUSTED_ORIGINS = ["https://choice-alien-saved.ngrok-free.app", 'soash.dev', '*.soash.dev']
+
