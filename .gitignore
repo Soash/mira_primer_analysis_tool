@@ -3,3 +3,4 @@ venv/
 dump/
 __pycache__
 .env
+logs/
