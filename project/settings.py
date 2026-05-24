@@ -150,7 +150,7 @@ if not DEBUG:
     X_FRAME_OPTIONS = 'DENY'
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-    CSRF_TRUSTED_ORIGINS = ['https://choice-alien-saved.ngrok-free.app', 'soash.dev', '*.soash.dev']
+    CSRF_TRUSTED_ORIGINS = ['https://choice-alien-saved.ngrok-free.app', 'https://soash.dev', 'https://*.soash.dev']
 else:
-    CSRF_TRUSTED_ORIGINS = ["https://choice-alien-saved.ngrok-free.app", 'soash.dev', '*.soash.dev']
+    CSRF_TRUSTED_ORIGINS = ["https://choice-alien-saved.ngrok-free.app", 'https://soash.dev', 'https://*.soash.dev']
 
