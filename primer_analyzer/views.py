@@ -8,6 +8,9 @@ from .utils import analyze_single_primer, analyze_dimer_dg
 def index(request):
     return render(request, 'primer_analyzer/index.html')
 
+def rules(request):
+    return render(request, 'primer_analyzer/rules.html')
+
 def analyze_primers(request):
     if request.method == 'POST':
         try:

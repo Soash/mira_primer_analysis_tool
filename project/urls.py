@@ -21,6 +21,7 @@ from primer_analyzer import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
+    path('rules/', views.rules, name='rules'),
     path('api/analyze/', views.analyze_primers, name='analyze_primers'),
     path("__reload__/", include("django_browser_reload.urls")),
 ]

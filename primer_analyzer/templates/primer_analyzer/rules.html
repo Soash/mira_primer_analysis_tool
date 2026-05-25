@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static tailwind_tags %}
+
+{% block content %}
+<div class="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-5xl mx-auto mt-6">
+    <h2 class="text-3xl font-bold text-gray-800 border-b-2 border-gray-100 pb-4 mb-6">MIRA/RPA Primer Design Rules</h2>
+    
+    <p class="text-gray-700 mb-6 text-lg">
+        Here are the valid parameters and rules for designing primers for Recombinase Polymerase Amplification (RPA) and Multienzyme Isothermal Rapid Amplification (MIRA) established from the sources:
+    </p>
+
+    <div class="space-y-8">
+        <!-- Primer Length and Amplicon Size -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-700 mb-3">Primer Length and Amplicon Size</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>Optimal Primer Length:</strong> Primers should optimally be <strong>30 to 36 nucleotides (nt) long</strong>. While primers shorter than 30 nt can function, they typically result in slower amplification kinetics. Primers up to 45 nt can be used, but making them unnecessarily long significantly increases the risk of forming secondary structures. <em>(Note: Exceptional cases exist, such as a highly sensitive 22 nt reverse primer used in an FMDV assay).</em></li>
+                <li><strong>Amplicon Length:</strong> To ensure genuine amplification outcompetes "primer noise" (artifacts), the target amplicon should be short. The ideal range is between <strong>100 and 200 base pairs (bp)</strong>, though lengths up to 450 bp or 500 bp are acceptable.</li>
+            </ul>
+        </div>
+
+        <!-- Sequence Composition and Melting Temperature -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-700 mb-3">Sequence Composition and Melting Temperature</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>Primer GC Content:</strong> Primer GC content should generally fall between <strong>30% and 70%</strong> (or 20% to 70% for some MIRA assays), with an ideal target range of <strong>40% to 60%</strong>.</li>
+                <li><strong>Amplicon GC Content:</strong> The target amplicon itself should ideally have a GC content of <strong>35% to 60%</strong>.</li>
+                <li><strong>Melting Temperature (Tm):</strong> Unlike traditional PCR, the melting temperature of an oligonucleotide is <strong>not a critical factor</strong> for its performance in RPA. However, some MIRA guidelines recommend designing primers with temperatures between <strong>50 and 100 &deg;C</strong>.</li>
+            </ul>
+        </div>
+
+        <!-- The 5' and 3' Ends -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-700 mb-3">The 5' and 3' Ends</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>The 3' End:</strong> If possible, the primer should <strong>terminate with a 'G' or 'C' at the 3' end</strong>. Crucially, you must <strong>avoid primer pairs with complementarity at their 3' ends</strong> to prevent the formation of primer-dimers.</li>
+                <li><strong>The 5' End:</strong> You should avoid placing multiple 'G' nucleotides within the first 3 to 5 base pairs of the 5' end.</li>
+            </ul>
+        </div>
+
+        <!-- Repeats, Palindromes, and Secondary Structures -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-700 mb-3">Repeats, Palindromes, and Secondary Structures</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>Nucleotide Repeats:</strong> Avoid long continuous tracks of a single nucleotide or a large number of small repetitive sequences. The maximum allowable length for a mononucleotide repeat (e.g., 'CCCCC') should be restricted to <strong>5</strong>.</li>
+                <li><strong>Target Sequence Features:</strong> Avoid targeting regions that contain direct or inverted repeats and palindromes.</li>
+                <li><strong>Secondary Structures:</strong> Discard oligonucleotides that contain sequence elements known to promote secondary structures, hairpins, or primer-primer interactions.</li>
+            </ul>
+        </div>
+
+        <!-- Reaction Tolerances and Concentrations -->
+        <div>
+            <h3 class="text-xl font-bold text-blue-700 mb-3">Reaction Tolerances and Concentrations</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700">
+                <li><strong>Mismatches:</strong> The RPA system is very robust and can <strong>tolerate 5 to 9 base pair mismatches</strong> between the primer/probe and the target without affecting performance. However, the use of degenerate bases should be kept to a minimum.</li>
+                <li><strong>Primer Concentrations:</strong> The concentration of individual primers can be varied between <strong>150 nM and 600 nM</strong>, but the total oligonucleotide concentration in the reaction (sum of all primers and probes) must be maintained between <strong>750 nM and 2000 nM</strong>. For multiplex assays, reducing the individual primer concentration to <strong>100 nM (0.1 &mu;M)</strong> is recommended.</li>
+            </ul>
+        </div>
+
+        <!-- Screening Strategy -->
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+            <h3 class="text-xl font-bold text-blue-800 mb-2">Screening Strategy</h3>
+            <p class="text-gray-700">
+                Because a primer's performance cannot be reliably predicted purely by its sequence, it is standard practice to design <strong>8 to 10 forward and reverse primer candidates</strong> and screen them empirically in a matrix to identify the best performing pair.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock content %}
