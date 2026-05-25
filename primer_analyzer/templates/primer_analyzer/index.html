@@ -25,7 +25,8 @@
                 <li>Length: <span id="fpLength" class="font-semibold">-</span> bp</li>
                 <li>GC Content: <span id="fpGC" class="font-semibold">-</span>%</li>
                 <li>Melting Temp (Tm): <span id="fpTm" class="font-semibold">-</span> &deg;C</li>
-                <li>Self Annealing (dG): <span id="fpSelf" class="font-semibold">-</span> kcal/mol</li>
+                <li>Hairpin (dG): <span id="fpHairpin" class="font-semibold">-</span> kcal/mol</li>
+                <li>Homodimer (dG): <span id="fpHomodimer" class="font-semibold">-</span> kcal/mol</li>
             </ul>
         </div>
         <div>
@@ -34,7 +35,8 @@
                 <li>Length: <span id="rpLength" class="font-semibold">-</span> bp</li>
                 <li>GC Content: <span id="rpGC" class="font-semibold">-</span>%</li>
                 <li>Melting Temp (Tm): <span id="rpTm" class="font-semibold">-</span> &deg;C</li>
-                <li>Self Annealing (dG): <span id="rpSelf" class="font-semibold">-</span> kcal/mol</li>
+                <li>Hairpin (dG): <span id="rpHairpin" class="font-semibold">-</span> kcal/mol</li>
+                <li>Homodimer (dG): <span id="rpHomodimer" class="font-semibold">-</span> kcal/mol</li>
             </ul>
         </div>
         <div class="md:col-span-2 text-center border-t border-blue-200 pt-4 flex flex-col items-center">
@@ -222,13 +224,19 @@
                     document.getElementById('fpLength').innerText = data.fp_stats.length;
                     document.getElementById('fpGC').innerText = data.fp_stats.gc.toFixed(1);
                     document.getElementById('fpTm').innerText = data.fp_stats.tm.toFixed(2);
-                    document.getElementById('fpSelf').innerText = data.fp_stats.hairpin_dg.toFixed(2);
+                    document.getElementById('fpHairpin').innerText = data.fp_stats.hairpin_dg.toFixed(2);
+                }
+                if(data.fp_fp_dg !== undefined) {
+                    document.getElementById('fpHomodimer').innerText = data.fp_fp_dg.toFixed(2);
                 }
                 if(data.rp_stats) {
                     document.getElementById('rpLength').innerText = data.rp_stats.length;
                     document.getElementById('rpGC').innerText = data.rp_stats.gc.toFixed(1);
                     document.getElementById('rpTm').innerText = data.rp_stats.tm.toFixed(2);
-                    document.getElementById('rpSelf').innerText = data.rp_stats.hairpin_dg.toFixed(2);
+                    document.getElementById('rpHairpin').innerText = data.rp_stats.hairpin_dg.toFixed(2);
+                }
+                if(data.rp_rp_dg !== undefined) {
+                    document.getElementById('rpHomodimer').innerText = data.rp_rp_dg.toFixed(2);
                 }
                 if(data.fp_rp_dg !== undefined) {
                     document.getElementById('crossAnneal').innerText = data.fp_rp_dg.toFixed(2);
